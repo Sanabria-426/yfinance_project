@@ -14,26 +14,56 @@ from streamlit_searchbox import st_searchbox
 
 import plotly.graph_objects as go
 
+# @TODO: Styling for the elements in the searchbar
+# @TODO: Workaround to display nicely and return efficiently
+# Thought: Maybe parse the string once received. I need only the symbol after all
+# @TODO: Error when no result - check on that - That might be because the value for symbols was retrieved without get
+# @TODO: Check if the numbers (millions) could be more readable
 def search_function(searchterm: str):
     if not searchterm:
         return []
     tickers = yf.Search(searchterm, max_results=10).quotes
-    # @TODO: Styling for the elements in the searchbar
-    # @TODO: Workaround to display nicely and return efficiently
-    # Thought: Maybe parse the string once received. I need only the symbol after all
-    # @TODO: Error when no result - check on that - That might be because the value for symbols was retrieved without get
-    # @TODO: Check if the numbers (millions) could be more readable
 
     return [
         {"Symbol": i.get('symbol'), "Short name": i.get('shortname')}
     for i in tickers ]
+
+def interval_select_box(start_date, end_date):
+    # @TODO: Implement this rule of the documentation
+    # https://algotrading101.com/learn/yfinance-guide/
+    # However it is important to note that the 1m data is only retrievable for the last 7 days,
+    # and anything intraday (interval <1d) only for the last 60 days
+
+    option = st.selectbox(
+        "Select an interval for the historical data",
+        (
+            'One Minute', 'Two Minutes', 'Three Minutes', 'Fifteen Minutes',
+            'Thirty Minutes', 'One Hour', 'Ninety Minutes',
+            "One Day", "One Week", "One Month"
+        ),
+    )
+
+    interval_translator = {
+        'One Day': '1d',
+        'One Week': '1wk',
+        'One Month': '1mo',
+        'One Minute': '1m',
+        'Two Minutes': '2m',
+        'Three Minutes': '5m',
+        'Fifteen Minutes': '15m',
+        'Thirty Minutes': '30m',
+        'One Hour': '60m',
+        'Ninety Minutes': '90m'
+    }
+    st.write(interval_translator[option])
+
+    return interval_translator[option]
 
 def get_financial_data(symbol: str):
 
     ticker = yf.Ticker(symbol)
 
     with historical_data_tab:
-
         start_date, end_date = date_range_picker(
             "Select a range for the historical data",
             default_start=date.today() - timedelta(days=30),
@@ -43,7 +73,11 @@ def get_financial_data(symbol: str):
             error_message="Please select start and end date"
         )
 
-        historical_data = ticker.history(start=start_date, end=end_date)
+
+
+        option = interval_select_box(start_date, end_date)
+
+        historical_data = ticker.history(start=start_date, end=end_date, interval=option)
 
         # Display a summary of the fetched data
         st.write("Historical Data:")
