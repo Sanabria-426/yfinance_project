@@ -1,4 +1,10 @@
 
+### @What to do next?
+# Allow to decide of the interval
+# Make the date range apply to oher data
+#
+
+
 from datetime import date, timedelta
 
 import streamlit as st
