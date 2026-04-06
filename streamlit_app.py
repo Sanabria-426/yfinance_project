@@ -3,7 +3,6 @@
 # Allow to decide of the interval
 #
 
-
 from datetime import date, timedelta
 
 import streamlit as st
@@ -30,10 +29,8 @@ def search_function(searchterm: str):
     for i in tickers ]
 
 def get_financial_data(symbol: str):
-    # Create a Ticker object
-    ticker = yf.Ticker(symbol)
 
-    # Fetch historical market data for the last year
+    ticker = yf.Ticker(symbol)
 
     with historical_data_tab:
 
@@ -45,8 +42,6 @@ def get_financial_data(symbol: str):
             max_date=date.today(),
             error_message="Please select start and end date"
         )
-
-        st.write(start_date, end_date)
 
         historical_data = ticker.history(start=start_date, end=end_date)
 
@@ -61,23 +56,10 @@ def get_financial_data(symbol: str):
         #                                      low=new_frame['Low'], close=new_frame['Close'])])
         # st.plotly_chart(fig)
 
-
-        # Apparently there was no need for dataframe
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=historical_data.index, y=historical_data['High'],
                                   mode='lines',
                                   name='High', line=dict(color='green')))
-        # fig2.add_trace(go.Scatter(x=historical_data.index, y=historical_data['Low'],
-        #                           mode='lines',
-        #                           name='20th percentile', line=dict(color='red', dash='dash')))
-        # fig2.add_trace(go.Scatter(x=historical_data.index, y=(historical_data['Close'] - historical_data['Open']),
-        #                           mode='lines+markers',
-        #                           name='20th percentile', line=dict(color='blue', dash='dash')))
-        # 'Volume' is not on the same scale.
-        # If displayed with the others, the chart is harder to read
-        # fig2.add_trace(go.Scatter(x=historical_data.index, y=historical_data['Volume'],
-        #                           mode='lines',
-        #                           name='20th percentile', line=dict(color='blue', dash='dash')))
         st.plotly_chart(fig2)
 
         st.write("Volume")
@@ -109,7 +91,6 @@ selected_value = st_searchbox(
     key="search_box",
     debounce=250  # Delays callback by 250ms
 )
-
 
 if selected_value:
     st.write(f"Selected: {selected_value.get("Symbol")} | {selected_value.get("Short name")}")
