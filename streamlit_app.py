@@ -1,7 +1,6 @@
 
-### @What to do next?
-# Allow to decide of the interval
-#
+### @TODO
+# Allow the user to choose the timezone?
 
 from datetime import date, timedelta
 
@@ -34,13 +33,22 @@ def interval_select_box(start_date, end_date):
     # However it is important to note that the 1m data is only retrievable for the last 7 days,
     # and anything intraday (interval <1d) only for the last 60 days
 
-    option = st.selectbox(
-        "Select an interval for the historical data",
-        (
+    basic_options = ("One Day", "One Week", "One Month")
+
+    if end_date - start_date <= timedelta(days=7):
+        basic_options = (
             'One Minute', 'Two Minutes', 'Three Minutes', 'Fifteen Minutes',
+            'Thirty Minutes', 'One Hour', 'Ninety Minutes'
+        ) + basic_options
+    elif end_date - start_date <= timedelta(days=60):
+        basic_options = (
+            'Two Minutes', 'Three Minutes', 'Fifteen Minutes',
             'Thirty Minutes', 'One Hour', 'Ninety Minutes',
-            "One Day", "One Week", "One Month"
-        ),
+        ) + basic_options
+
+    option = st.selectbox(
+        "Select an interval for the historical data", basic_options,
+        help="The 1-minute data is only retrievable for the last 7 days, and anything intraday (inferior to 1 day) only for the last 60 days"
     )
 
     interval_translator = {
