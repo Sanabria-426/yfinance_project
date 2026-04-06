@@ -81,15 +81,13 @@ def get_financial_data(symbol: str):
             error_message="Please select start and end date"
         )
 
-
-
         option = interval_select_box(start_date, end_date)
 
-        historical_data = ticker.history(start=start_date, end=end_date, interval=option)
+        historical_data = ticker.history(start=start_date, end=end_date + timedelta(days=1), interval=option)
 
         # Display a summary of the fetched data
         st.write("Historical Data:")
-        st.write(historical_data[['Open', 'High', 'Low', 'Close', 'Volume']])
+        st.write((historical_data[['Open', 'High', 'Low', 'Close', 'Volume']].iloc[::-1]))
 
         # Build a figure with plotly. A bit different from the YT tutorial
         # new_frame = pd.DataFrame(historical_data)
@@ -121,7 +119,6 @@ def get_financial_data(symbol: str):
         st.write(financials)
 
     # Fetch stock actions like dividends and splits
-
     with stock_actions_tab:
         actions = ticker.actions
         st.write("\nStock Actions:")
