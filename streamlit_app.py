@@ -4,6 +4,8 @@ import pandas as pd
 
 from streamlit_searchbox import st_searchbox
 
+import plotly.graph_objects as go
+
 def search_function(searchterm: str):
     if not searchterm:
         return []
@@ -11,9 +13,10 @@ def search_function(searchterm: str):
     # @TODO: Styling for the elements in the searchbar
     # @TODO: Workaround to display nicely and return efficiently
     # Thought: Maybe parse the string once received. I need only the symbol after all
+    # @TODO: Error when no result - check on that
 
     return [
-        {"Symbol": i['symbol'], "Short name": i['shortname']}
+        {"Symbol": i.get('symbol'), "Short name": i.get('shortname')}
     for i in tickers ]
 
 # @TODO: Maybe provide a sidebar for the user to clearly identify what is displayed
@@ -29,6 +32,15 @@ def get_financial_data(symbol: str):
     # Display a summary of the fetched data
     st.write("Historical Data:")
     st.write(historical_data[['Open', 'High', 'Low', 'Close', 'Volume']])
+
+    st.write(pd.DataFrame(historical_data))
+
+    new_frame = pd.DataFrame(historical_data)
+
+    fig = go.Figure(data=[go.Candlestick(x=new_frame.index,
+                                         open=new_frame['Open'], high=new_frame['High'],
+                                         low=new_frame['Low'], close=new_frame['Close'])])
+    st.plotly_chart(fig)
 
     # Fetch basic financials
     financials = ticker.financials
@@ -48,8 +60,8 @@ selected_value = st_searchbox(
 )
 
 if selected_value:
-    st.write(f"Selected: {selected_value["Symbol"]} | {selected_value["Short name"]}")
-    get_financial_data(selected_value["Symbol"])
+    st.write(f"Selected: {selected_value.get("Symbol")} | {selected_value.get("Short name")}")
+    get_financial_data(selected_value.get("Symbol"))
 
 
 
