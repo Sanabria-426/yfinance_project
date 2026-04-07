@@ -1,7 +1,4 @@
 
-### @TODO
-# Allow the user to choose the timezone?
-
 from datetime import date, timedelta
 
 import streamlit as st
@@ -24,11 +21,11 @@ def search_function(searchterm: str):
     tickers = yf.Search(searchterm, max_results=10).quotes
 
     return [
-        {"Symbol": i.get('symbol'), "Short name": i.get('shortname')}
-    for i in tickers ]
+        # {"Symbol": i.get('symbol'), "Short name": i.get('shortname')} for i in tickers
+        {"Symbol": i.get('symbol'), "Short name": i.get('shortname'), "Long name": i.get('longname')} for i in tickers
+    ]
 
 def interval_select_box(start_date, end_date):
-    # @TODO: Implement this rule of the documentation
     # https://algotrading101.com/learn/yfinance-guide/
     # However it is important to note that the 1m data is only retrievable for the last 7 days,
     # and anything intraday (interval <1d) only for the last 60 days
@@ -177,7 +174,9 @@ selected_value = st_searchbox(
 )
 
 if selected_value:
-    st.write(f"Selected: {selected_value.get("Symbol")} | {selected_value.get("Short name")}")
+
+    st.write(f"<p style=\"color: royalblue;font-size: 20px;text-align: center\"><b>{selected_value.get("Symbol")} | {selected_value.get("Short name")} | {selected_value.get("Long name")}</b></p>",
+             unsafe_allow_html=True)
 
     historical_data_tab, financials_tab, stock_actions_tab = st.tabs(["Historical Data", "Financials", "Stock Actions"])
 
