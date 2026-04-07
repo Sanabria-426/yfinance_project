@@ -1,29 +1,25 @@
 
 from datetime import date, timedelta
 
+import pandas as pd
+import plotly.graph_objects as go
+import yfinance as yf
 import streamlit as st
 from streamlit_extras.mandatory_date_range import date_range_picker
-import yfinance as yf
-import pandas as pd
-
 from streamlit_searchbox import st_searchbox
 
-import plotly.graph_objects as go
 
-# @TODO: Styling for the elements in the searchbar
-# @TODO: Workaround to display nicely and return efficiently
-# Thought: Maybe parse the string once received. I need only the symbol after all
-# @TODO: Error when no result - check on that - That might be because the value for symbols was retrieved without get
 # @TODO: Check if the numbers (millions) could be more readable
-def search_function(searchterm: str):
+# Update: It could, but a string a diffi
+def search_function(searchterm: str) -> list[tuple[str, dict]]:
     if not searchterm:
         return []
     tickers = yf.Search(searchterm, max_results=10).quotes
 
-    return [
-        # {"Symbol": i.get('symbol'), "Short name": i.get('shortname')} for i in tickers
-        {"Symbol": i.get('symbol'), "Short name": i.get('shortname'), "Long name": i.get('longname')} for i in tickers
-    ]
+    return [(
+        f"Symbol: {i.get('symbol')} | Short name: {i.get('shortname')}",
+        i
+    ) for i in tickers ]
 
 def interval_select_box(start_date, end_date):
     # https://algotrading101.com/learn/yfinance-guide/
@@ -170,14 +166,14 @@ selected_value = st_searchbox(
     search_function,
     placeholder="Search...",
     key="search_box",
-    debounce=250  # Delays callback by 250ms
+    debounce=250
 )
 
 if selected_value:
 
-    st.write(f"<p style=\"color: royalblue;font-size: 20px;text-align: center\"><b>{selected_value.get("Symbol")} | {selected_value.get("Short name")} | {selected_value.get("Long name")}</b></p>",
+    st.write(f"<p style=\"color: royalblue;font-size: 20px;text-align: center\"><b>{selected_value.get("symbol")} | {selected_value.get("shortname")} | {selected_value.get("longname")}</b></p>",
              unsafe_allow_html=True)
 
     historical_data_tab, financials_tab, stock_actions_tab = st.tabs(["Historical Data", "Financials", "Stock Actions"])
 
-    get_financial_data(selected_value.get("Symbol"))
+    get_financial_data(selected_value.get("symbol"))
