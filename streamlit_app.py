@@ -102,6 +102,17 @@ def get_historical_data(ticker):
     hd["z_volume"] = (hd["Volume"] - hd["Volume"].mean()) / hd["Volume"].std()
     hd["z_price"] = (hd["price_change"] - hd["price_change"].mean()) / hd["price_change"].std()
 
+    fig = go.Figure(data=[go.Candlestick(
+        x=hd.index,
+        open=hd['Open'],
+        high=hd['High'],
+        low=hd['Low'],
+        close=hd['Close'],
+        name="Candlesticks"
+    )])
+    st.plotly_chart(fig)
+
+
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=hd.index, y=hd['Close'],
                               mode='lines',
@@ -119,11 +130,13 @@ def get_historical_data(ticker):
     if interval in ('1d', '1wk', '1mo'):
         # Flag a day as anomalous if either Z-score exceeds 2
         hd["anomaly"] = (hd["z_volume"].abs() > 2) | (hd["z_price"].abs() > 2)
-        anomalies = hd[hd["anomaly"] == True]
+
+        anomalies = hd[hd["anomaly"] == True].copy()
         anomalies["hover_text"] = (
                 "Z-volume: " + anomalies["z_volume"].round(2).astype(str) + "<br>" +
                 "Z-price: " + anomalies["z_price"].round(2).astype(str)
         )
+
         fig2.add_trace(go.Scatter(x=anomalies.index, y=anomalies["Close"],
             mode="markers", name="Anomaly", marker=dict(color="red", size=5, symbol="circle"),
             text=anomalies["hover_text"],
