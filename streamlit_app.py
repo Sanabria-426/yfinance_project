@@ -1,7 +1,7 @@
 
 from datetime import date, timedelta
+import math
 
-import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
 import streamlit as st
@@ -58,6 +58,23 @@ def interval_select_box(start_date, end_date):
 
     return interval_translator[option]
 
+@st.cache_data
+def get_summary(hd):
+    total_return, volatility, sharpe_ratio = st.columns(3)
+    # Computing total_return
+    compute_tr = hd.tail(1).get("Close")[0] - hd.head(1).get("Open")[0]
+    compute_tr_cpt = compute_tr / hd.head(1).get("Open")[0]
+    total_return.metric(label='Total return', value="{:.3}".format(compute_tr), delta="{:.2%}".format(compute_tr_cpt))
+    # Computing volatility
+    compute_volat = (hd['price_change'].std()) * math.sqrt(252)
+    volatility.metric(label='Volatility', value=compute_volat)
+    # Computing Sharpe ratio
+    # Current US T-bill rate
+    data = yf.download("^IRX", period="1d")
+    current_rate = data["Close"].iloc[-1] / 100 / 252
+    compute_sharpe_ratio = ((hd['price_change'].mean() - current_rate) / hd['price_change'].std()) * math.sqrt(252)
+    sharpe_ratio.metric(label='Sharpe ratio', value=compute_sharpe_ratio)
+
 @st.fragment(run_every="1m")
 def get_historical_data(ticker):
     start_date, end_date = date_range_picker(
@@ -91,6 +108,10 @@ def get_historical_data(ticker):
                  "To display such information, the interval should be superior or equal to 1 day.</p>",
              unsafe_allow_html=True)
 
+    hd["price_change"] = hd["Close"].pct_change()  # daily % change
+    hd["z_volume"] = (hd["Volume"] - hd["Volume"].mean()) / hd["Volume"].std()
+    hd["z_price"] = (hd["price_change"] - hd["price_change"].mean()) / hd["price_change"].std()
+    get_summary(hd)
     # Display a summary of the fetched data
     st.write("Historical Data:", hd[['Open', 'High', 'Low', 'Close', 'Volume']].iloc[::-1])
 
@@ -98,10 +119,6 @@ def get_historical_data(ticker):
         st.write("Other values", hd[['Dividends', 'Stock Splits', 'MA20', 'MA50']].iloc[::-1])
     except KeyError:
         st.write("Dividends and Stock Splits cannot be displayed for this time interval.")
-
-    hd["price_change"] = hd["Close"].pct_change()  # daily % change
-    hd["z_volume"] = (hd["Volume"] - hd["Volume"].mean()) / hd["Volume"].std()
-    hd["z_price"] = (hd["price_change"] - hd["price_change"].mean()) / hd["price_change"].std()
 
     candlesticks_fig = go.Figure(data=[go.Candlestick(
         x=hd.index,
@@ -154,18 +171,15 @@ def get_historical_data(ticker):
     st.plotly_chart(volumes_fig)
 
 def get_financial_data(symbol: str):
-
     try:
         ticker = yf.Ticker(symbol)
         with historical_data_tab:
             get_historical_data(ticker)
-
         # Fetch basic financials
         with financials_tab:
             financials = ticker.financials
             st.write("\nFinancials:")
             st.write(financials)
-
         # Fetch stock actions like dividends and splits
         with stock_actions_tab:
             actions = ticker.actions
@@ -198,7 +212,7 @@ def comparison_values(symbol1, symbol2):
         comparing_values_fig.add_trace(go.Scatter(x=hd1.index, y=hd1['Close'],
                                       mode='lines',
                                       name=f'Close Price {symbol1}', line=dict(color='orange')))
-        comparing_values_fig.add_trace(go.Scatter(x=hd1.index, y=hd2['Close'],
+        comparing_values_fig.add_trace(go.Scatter(x=hd2.index, y=hd2['Close'],
                                       mode='lines',
                                       name=f'Close Price {symbol2}', line=dict(color='blue')))
         st.plotly_chart(comparing_values_fig)
