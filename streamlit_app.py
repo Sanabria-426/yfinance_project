@@ -62,6 +62,7 @@ def interval_select_box(start_date, end_date):
 def get_historical_data(ticker):
     start_date, end_date = date_range_picker(
         "Select a range for the historical data",
+        key="date_range_picker1",
         default_start=date.today() - timedelta(days=30),
         default_end=date.today(),
         min_date=date(1970, 1, 1),
@@ -102,7 +103,7 @@ def get_historical_data(ticker):
     hd["z_volume"] = (hd["Volume"] - hd["Volume"].mean()) / hd["Volume"].std()
     hd["z_price"] = (hd["price_change"] - hd["price_change"].mean()) / hd["price_change"].std()
 
-    fig = go.Figure(data=[go.Candlestick(
+    candlesticks_fig = go.Figure(data=[go.Candlestick(
         x=hd.index,
         open=hd['Open'],
         high=hd['High'],
@@ -110,19 +111,18 @@ def get_historical_data(ticker):
         close=hd['Close'],
         name="Candlesticks"
     )])
-    st.plotly_chart(fig)
+    st.plotly_chart(candlesticks_fig)
 
-
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=hd.index, y=hd['Close'],
+    main_fig = go.Figure()
+    main_fig.add_trace(go.Scatter(x=hd.index, y=hd['Close'],
                               mode='lines',
                               name='Close Price', line=dict(color='green')))
 
     if interval in ('1d', '1wk', '1mo'):
-        fig2.add_trace(go.Scatter(x=hd.index, y=hd['MA20'],
+        main_fig.add_trace(go.Scatter(x=hd.index, y=hd['MA20'],
                                   mode='lines',
                                   name='20-Day Moving Averages', line=dict(color='orange')))
-        fig2.add_trace(go.Scatter(x=hd.index, y=hd['MA50'],
+        main_fig.add_trace(go.Scatter(x=hd.index, y=hd['MA50'],
                                   mode='lines',
                                   name='50-Day Moving Averages', line=dict(color='blue')))
     # Kept the chart readable by disabling anomalies for a very short interval
@@ -137,21 +137,21 @@ def get_historical_data(ticker):
                 "Z-price: " + anomalies["z_price"].round(2).astype(str)
         )
 
-        fig2.add_trace(go.Scatter(x=anomalies.index, y=anomalies["Close"],
+        main_fig.add_trace(go.Scatter(x=anomalies.index, y=anomalies["Close"],
             mode="markers", name="Anomaly", marker=dict(color="red", size=5, symbol="circle"),
             text=anomalies["hover_text"],
             hoverinfo="text+x+y",
         ))
-    st.plotly_chart(fig2)
+    st.plotly_chart(main_fig)
 
-    fig3 = go.Figure()
-    fig3.add_trace(go.Scatter(x=hd.index, y=hd['z_volume'],
+    volumes_fig = go.Figure()
+    volumes_fig.add_trace(go.Scatter(x=hd.index, y=hd['z_volume'],
                               mode='lines',
                               name='Daily Volumes', line=dict(color='blue')))
-    fig3.add_trace(go.Scatter(x=hd.index, y=hd['z_price'],
+    volumes_fig.add_trace(go.Scatter(x=hd.index, y=hd['z_price'],
                               mode='lines',
                               name='Daily Price Change', line=dict(color='green')))
-    st.plotly_chart(fig3)
+    st.plotly_chart(volumes_fig)
 
 def get_financial_data(symbol: str):
 
@@ -174,6 +174,37 @@ def get_financial_data(symbol: str):
     except Exception:
         st.write(f'A problem occurred while retrieving data for this symbol: {symbol}')
 
+def comparison_values(symbol1, symbol2):
+    try:
+        ticker1 = yf.Ticker(symbol1)
+        ticker2 = yf.Ticker(symbol2)
+
+        start_date, end_date = date_range_picker(
+            "Select a range for the historical data",
+            key="date_range_picker2",
+            default_start=date.today() - timedelta(days=30),
+            default_end=date.today(),
+            min_date=date(1970, 1, 1),
+            max_date=date.today(),
+            error_message="Please select start and end date"
+        )
+        interval = interval_select_box(start_date, end_date)
+
+        # Historical Data: hd
+        hd1 = ticker1.history(start=start_date, end=end_date + timedelta(days=1), interval=interval)
+        hd2 = ticker2.history(start=start_date, end=end_date + timedelta(days=1), interval=interval)
+
+        comparing_values_fig = go.Figure()
+        comparing_values_fig.add_trace(go.Scatter(x=hd1.index, y=hd1['Close'],
+                                      mode='lines',
+                                      name=f'Close Price {symbol1}', line=dict(color='orange')))
+        comparing_values_fig.add_trace(go.Scatter(x=hd1.index, y=hd2['Close'],
+                                      mode='lines',
+                                      name=f'Close Price {symbol2}', line=dict(color='blue')))
+        st.plotly_chart(comparing_values_fig)
+    except Exception:
+        st.write(f'A problem occurred while retrieving data for one of these symbols: {symbol1} or {symbol2}')
+
 selected_value = st_searchbox(
     search_function,
     placeholder="Search...",
@@ -182,10 +213,26 @@ selected_value = st_searchbox(
 )
 
 if selected_value:
+    st.write("Compare with another value:")
+    comparing_value = st_searchbox(
+        search_function,
+        placeholder="Search...",
+        key="compare_box",
+        debounce=250
+    )
 
-    st.write(f"<p style=\"color: royalblue;font-size: 20px;text-align: center\"><b>{selected_value.get("symbol")} | {selected_value.get("shortname")} | {selected_value.get("longname")}</b></p>",
-             unsafe_allow_html=True)
-
-    historical_data_tab, financials_tab, stock_actions_tab = st.tabs(["Historical Data", "Financials", "Stock Actions"])
-
-    get_financial_data(selected_value.get("symbol"))
+    if comparing_value:
+        if comparing_value.get("symbol") == selected_value.get("symbol"):
+            st.write(
+                f"<p style=\"color: red;font-size: 16px;text-align: center\">You cannot compare a value with itself.</b></p>",
+                unsafe_allow_html=True)
+        else:
+            st.write(
+                f"<p style=\"font-size: 20px;text-align: center\">Compared <span style=\"color: orange;\"><b>{selected_value.get("symbol")} | {selected_value.get("shortname")} | {selected_value.get("longname")}</b></span> with <span style=\"color: blue;\"><b>{comparing_value.get("symbol")} | {comparing_value.get("shortname")} | {comparing_value.get("longname")}</b></span></p>",
+                unsafe_allow_html=True)
+            comparison_values(selected_value.get("symbol"), comparing_value.get("symbol"))
+    else:
+        st.write(f"<p style=\"color: royalblue;font-size: 20px;text-align: center\"><b>{selected_value.get("symbol")} | {selected_value.get("shortname")} | {selected_value.get("longname")}</b></p>",
+                 unsafe_allow_html=True)
+        historical_data_tab, financials_tab, stock_actions_tab = st.tabs(["Historical Data", "Financials", "Stock Actions"])
+        get_financial_data(selected_value.get("symbol"))
