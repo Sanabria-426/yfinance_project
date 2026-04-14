@@ -62,8 +62,8 @@ def interval_select_box(start_date, end_date):
 def get_summary(hd):
     total_return, volatility, sharpe_ratio = st.columns(3)
     # Computing total_return
-    compute_tr = hd.tail(1).get("Close")[0] - hd.head(1).get("Open")[0]
-    compute_tr_cpt = compute_tr / hd.head(1).get("Open")[0]
+    compute_tr = hd.tail(1)["Close"].iloc[0] - hd.head(1)["Open"].iloc[0]
+    compute_tr_cpt = compute_tr / hd.head(1)["Open"].iloc[0]
     total_return.metric(label='Total return', value="{:.3}".format(compute_tr), delta="{:.2%}".format(compute_tr_cpt))
     # Computing volatility
     compute_volat = (hd['price_change'].std()) * math.sqrt(252)
